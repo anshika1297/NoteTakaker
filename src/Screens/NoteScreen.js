@@ -43,8 +43,9 @@ const NoteScreen = () => {
   };
 
   const filterfunc = () => {
+    getNotes();
     if (Notecategory === "All") {
-      getNotes();
+      setNotesData(notesData);
     } else {
       const filteredData = notesData.filter(
         (note) => note.category === Notecategory

@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/notes.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -19,12 +19,18 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/notes.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.anshika_mi.NoteTakaker"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/notes.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "05147d59-3ee8-4eb5-a096-fb5e41c1f016"
+      }
     }
   }
 }
