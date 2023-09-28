@@ -1,19 +1,24 @@
+import { useState, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, SafeAreaView, Text, View } from "react-native";
+import Constants from "expo-constants";
 import NoteScreen from "./src/Screens/NoteScreen";
-import NoteFolder from "./src/Screens/NoteFolder";
+import NoteDetail from "./src/components/NoteDetail";
+import NoteInput from "./src/components/NoteInput";
+import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 const Stack = createStackNavigator();
 
 export default function App() {
   return (
-    <SafeAreaView style={styles.container}>
-      <NoteScreen />
-
-      <StatusBar style="auto" />
-    </SafeAreaView>
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Home">
+        <Stack.Screen name="Home" component={NoteScreen} />
+        <Stack.Screen name="NoteDetail" component={NoteDetail} />
+        <Stack.Screen name="AddEditNote" component={NoteInput} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
@@ -23,5 +28,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
+    paddingTop: Constants.statusBarHeight,
   },
 });

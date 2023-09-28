@@ -1,187 +1,93 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  Modal,
-  TouchableOpacity,
-  TextInput,
-  TouchableWithoutFeedback,
-  Keyboard,
-  Dimensions,
-  ScrollView,
-  ImageBackground,
-  Alert,
-} from "react-native";
 import React from "react";
-import { AntDesign, FontAwesome, MaterialIcons } from "@expo/vector-icons";
-import NoteInput from "./NoteInput";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Dimensions,
+  ImageBackground,
+  StyleSheet,
+} from "react-native";
 
-const NoteDetail = ({ item, visible, onClose, setNotesData }) => {
-  const [modal, setModal] = React.useState(false);
-  const [isEdit, setEdit] = React.useState(false);
-
-  const onUpdate = async (title, note) => {
-    const getUserNotes = await AsyncStorage.getItem("userNotes");
-    let notes = [];
-    if (getUserNotes !== null) notes = JSON.parse(getUserNotes);
-    const updatedNotes = notes.filter((n) => {
-      if (item.id === n.id) {
-        (n.title = title),
-          (n.noteDesc = note),
-          (n.time = new Date().toLocaleTimeString()),
-          (n.date = new Date().toLocaleDateString()),
-          (n.isUpdate = true);
-      }
-      return n;
-    });
-
-    await AsyncStorage.setItem("userNotes", JSON.stringify(updatedNotes));
-    setNotesData(updatedNotes);
-  };
-
-  const deleteNote = async () => {
-    try {
-      const getUserNotes = await AsyncStorage.getItem("userNotes");
-      let notes = [];
-      if (getUserNotes !== null) notes = JSON.parse(getUserNotes);
-      console.log(notes);
-
-      const updatedNotes = notes.filter((n) => item.id !== n.id);
-      await AsyncStorage.setItem("userNotes", JSON.stringify(updatedNotes));
-      setNotesData(updatedNotes);
-    } catch (e) {
-      console.log(e);
-    }
-  };
-
-  const handleDelete = () => {
-    Alert.alert(
-      "Are you Sure?",
-      "This Action Will Delete your Note Permanently.",
-      [
-        {
-          text: "Delete",
-          onPress: deleteNote,
-        },
-        {
-          text: "Cancel",
-          onPress: () => {
-            console.log("Cancel");
-          },
-        },
-      ],
-      {
-        cancelable: true,
-      }
-    );
-  };
-  const closeModal = () => {
-    onClose();
-  };
+const NoteDetail = ({ route, navigation }) => {
+  const { note } = route.params;
 
   return (
-    <Modal visible={visible} animationType="slide">
-      <ImageBackground
-        source={{
-          uri: "https://pub-static.fotor.com/assets/bg/91943916-cf00-4529-8ed4-3e47304cea73.jpg",
-        }}
-        style={{ width: "100%", height: "100%" }}
-      >
-        <TouchableOpacity
-          style={{ alignSelf: "flex-end", padding: 15 }}
-          onPress={closeModal}
-        >
-          <AntDesign name="close" size={24} color="black" />
-        </TouchableOpacity>
-
-        <View style={{ flex: 1, justifyContent: "center", padding: 20 }}>
+    <ImageBackground
+      source={{
+        uri: "https://pub-static.fotor.com/assets/bg/91943916-cf00-4529-8ed4-3e47304cea73.jpg",
+      }}
+      style={{ width: "100%", height: "100%" }}
+    >
+      <View style={styles.container}>
+        <Text style={styles.header}>Note Detail</Text>
+        <View style={styles.noteContainer}>
+          <Text style={styles.noteTitle}>{note.title}</Text>
           <View
             style={{
               flexDirection: "row",
               justifyContent: "space-between",
-              paddingBottom: 40,
+              opacity: 0.5,
             }}
           >
-            <View>
-              <Text
-                style={{
-                  fontSize: 25,
-                  fontStyle: "italic",
-                  fontWeight: "bold",
-                }}
-              >
-                {item.title}
-              </Text>
-              <View style={{ flexDirection: "row" }}>
-                <Text style={{ fontSize: 13, opacity: 0.7 }}>
-                  {item.date},{"   "}
-                </Text>
-                <Text style={{ fontSize: 13, opacity: 0.7 }}>{item.time}</Text>
-              </View>
-              <Text>Category: {item.category} Notes</Text>
-            </View>
-            <View style={{ paddingTop: 10, opacity: 0.7 }}></View>
-          </View>
-          <ScrollView>
-            <Text style={{ fontSize: 17, alignSelf: "auto", padding: 5 }}>
-              {item.noteDesc}
+            <Text>
+              Category:{"  "} {note.category}
             </Text>
-          </ScrollView>
+            <Text>
+              {note.date} {note.time}
+            </Text>
+          </View>
+          <Text style={styles.noteContent}>{note.content}</Text>
         </View>
         <TouchableOpacity
-          style={[
-            styles.button,
-            {
-              position: "absolute",
-              alignSelf: "baseline",
-              zIndex: 1,
-              right: 20,
-              bottom: 190,
-            },
-          ]}
-          onPress={() => setModal(true)}
+          style={styles.editButton}
+          onPress={() => navigation.navigate("AddEditNote", { note })}
         >
-          <FontAwesome name="pencil-square-o" size={30} color="black" />
+          <Text style={styles.editButtonText}>Edit Note</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.button,
-            {
-              position: "absolute",
-              alignSelf: "baseline",
-              zIndex: 1,
-              right: 20,
-              bottom: 120,
-            },
-          ]}
-          onPress={handleDelete}
-        >
-          <MaterialIcons name="delete" size={30} color="black" />
-        </TouchableOpacity>
-      </ImageBackground>
-      <NoteInput
-        visible={modal}
-        item={item}
-        isEdit={true}
-        onClose={() => setModal(false)}
-        onSubmit={onUpdate}
-      />
-    </Modal>
+      </View>
+    </ImageBackground>
   );
 };
 
-export default NoteDetail;
-
 const styles = StyleSheet.create({
-  button: {
-    width: 50,
-    backgroundColor: "#C8AA74",
-    height: 50,
-    borderRadius: 25,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 30,
-    zIndex: 1,
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  header: {
+    fontSize: 24,
+    marginBottom: 20,
+  },
+  noteContainer: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    padding: 10,
+    backgroundColor: "white",
+  },
+  noteTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#D29828",
+  },
+  noteContent: {
+    fontSize: 17,
+    paddingTop: 20,
+    opacity: 0.8,
+  },
+  editButton: {
+    backgroundColor: "#D29828",
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 20,
+  },
+  editButtonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
   },
 });
+
+export default NoteDetail;

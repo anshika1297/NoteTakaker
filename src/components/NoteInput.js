@@ -1,166 +1,155 @@
+import React, { useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  StyleSheet,
-  Text,
   View,
-  Modal,
-  TouchableOpacity,
+  Text,
   TextInput,
-  TouchableWithoutFeedback,
-  Keyboard,
-  Dimensions,
-  ImageBackground,
+  Button,
+  TouchableOpacity,
+  Modal,
+  StyleSheet,
 } from "react-native";
-import React from "react";
-import { AntDesign } from "@expo/vector-icons";
-import RNPickerSelect from "react-native-picker-select";
+import CategorySelector from "./CategorySelector";
 
-const NoteInput = ({ visible, item, isEdit, onClose, onSubmit }) => {
-  const [title, setTitle] = React.useState("");
-  const [note, setNote] = React.useState("");
-  const [category, setCategory] = React.useState("");
+const NoteInput = ({ route, navigation }) => {
+  const { note } = route.params || { note: null };
+  const [title, setTitle] = useState(note ? note.title : "");
+  const [content, setContent] = useState(note ? note.content : "");
+  const [selectedCategory, setSelectedCategory] = useState(
+    note ? note.category : ""
+  );
+  const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
 
-  React.useEffect(() => {
-    if (isEdit) {
-      setTitle(item.title);
-      setCategory(item.category);
-      setNote(item.noteDesc);
-    }
-  }, [isEdit]);
-  const handleModalClose = () => {
-    Keyboard.dismiss();
+  const { setNotes } = route.params;
+
+  const toggleCategoryModal = () => {
+    setCategoryModalVisible(!isCategoryModalVisible);
   };
 
-  const handleSubmit = () => {
-    if (!title.trim() || !note.trim()) {
-      setNote("");
-      return onClose();
-    } else {
-      onSubmit(title, note, category);
-      if (!isEdit) {
-        setNote("");
-        setTitle("");
+  // Function to handle category selection
+  const handleCategoryChange = (category) => {
+    setSelectedCategory(category);
+  };
+  // Function to save the note
+  const saveNote = async () => {
+    try {
+      const newNote = {
+        id: Date.now(),
+        title,
+        content,
+        category: selectedCategory,
+        time: new Date().toLocaleTimeString(),
+        date: new Date().toLocaleDateString(),
+      };
+      const savedNotes = await AsyncStorage.getItem("notes");
+      let notes = savedNotes ? JSON.parse(savedNotes) : [];
+
+      if (note) {
+        // Update existing note if it exists
+        const index = notes.findIndex((n) => n.id === note.id);
+        console.log(index);
+        if (index !== -1) {
+          notes[index] = newNote;
+        }
+      } else {
+        // Create a new note
+        notes.push(newNote);
       }
-      onClose();
+
+      await AsyncStorage.setItem("notes", JSON.stringify(notes));
+      setNotes(notes);
+      navigation.navigate("Home");
+    } catch (error) {
+      console.error("Error saving note:", error);
     }
   };
 
-  const closeModal = () => {
-    if (!isEdit) {
-      setTitle("");
-      setNote("");
-    }
-
-    onClose();
-  };
   return (
-    <Modal visible={visible} animationType="slide">
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <View style={styles.InputView}>
-          <Text
-            style={{
-              fontSize: 17,
-              marginTop: 20,
-              fontStyle: "italic",
-              alignSelf: "center",
-              color: "#7D93AE",
-            }}
-          >
-            Create New Note
-          </Text>
-          <TextInput
-            placeholder="Enter the Title...."
-            placeholderTextColor="#7D93AE"
-            value={title}
-            onChangeText={(e) => setTitle(e)}
-            style={styles.inputBox}
-          />
-          <View style={[styles.inputBox, { height: 50 }]}>
-            <RNPickerSelect
-              onValueChange={(value) => setCategory(value)}
-              items={[
-                { label: "Work", value: "Work" },
-                { label: "Personal", value: "Personal" },
-                { label: "Daily", value: "Daily" },
-                { label: "Others", value: "Others" },
-              ]}
-              value={category}
-              placeholder={{
-                label: "Choose the Note Category...",
-                value: null,
-              }}
-            />
-          </View>
+    <View style={styles.container}>
+      <Text style={styles.header}>
+        {note ? "Edit Note" : "Create New Note"}
+      </Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Title"
+        value={title}
+        onChangeText={setTitle}
+      />
 
-          <TextInput
-            placeholder="Write Here...."
-            placeholderTextColor="#7D93AE"
-            multiline
-            value={note}
-            onChangeText={(e) => setNote(e)}
-            style={[styles.inputBox, { height: 150 }]}
-          />
-          <Text style={{ color: "#7D93AE", alignSelf: "center", opacity: 0.5 }}>
-            Minimum 10 characters Required
-          </Text>
-          <View
-            style={{ flexDirection: "row", justifyContent: "space-around" }}
-          >
-            {note.length > 10 ? (
-              <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-                <AntDesign name="check" size={30} color="white" />
-              </TouchableOpacity>
-            ) : null}
-            <TouchableOpacity style={styles.button}>
-              <AntDesign
-                name="close"
-                size={30}
-                color="white"
-                onPress={closeModal}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
+      {/* Category Selection Button */}
+      <TouchableOpacity
+        onPress={toggleCategoryModal}
+        style={styles.categoryButton}
+      >
+        <Text
+          style={{
+            fontSize: 17,
+            backgroundColor: "#7D93AE",
+            width: 320,
+            height: 30,
+            paddingLeft: 20,
+            marginBottom: 20,
+            padding: 5,
+            borderRadius: 30,
 
-        <TouchableWithoutFeedback onPress={handleModalClose}>
-          <View style={[StyleSheet.absoluteFillObject, styles.bgModal]}></View>
-        </TouchableWithoutFeedback>
-      </View>
-    </Modal>
+            color: "#ECECEC",
+          }}
+        >
+          Category:{"  "} {selectedCategory}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Category Selector */}
+      <CategorySelector
+        isVisible={isCategoryModalVisible}
+        toggleModal={toggleCategoryModal}
+        selectedCategory={selectedCategory}
+        onCategoryChange={handleCategoryChange}
+        categories={[
+          "Personal",
+          "Work",
+          "General Updates",
+          "Shopping",
+          "Other",
+        ]}
+      />
+
+      <TextInput
+        style={[styles.input, styles.multilineInput]}
+        placeholder="Content"
+        multiline
+        value={content}
+        onChangeText={setContent}
+      />
+      <Text style={{ color: "#7D93AE", opacity: 0.5 }}>
+        Minimum 10 characters Required
+      </Text>
+      {content.length > 10 && title.length > 1 ? (
+        <Button title="Save" onPress={saveNote} />
+      ) : null}
+    </View>
   );
 };
 
-export default NoteInput;
-
 const styles = StyleSheet.create({
-  InputView: {
-    marginVertical: 30,
-    alignSelf: "center",
-    paddingHorizontal: 20,
-  },
-  inputBox: {
-    width: 320,
-    height: 60,
-    fontSize: 17,
-    marginTop: 20,
-    paddingHorizontal: 20,
-    borderRadius: 30,
-    backgroundColor: "#ECECEC",
-    color: "#7D93AE",
-    opacity: 0.5,
-  },
-  bgModal: {
+  container: {
     flex: 1,
-    zIndex: -1,
-    backgroundColor: "#182746",
+    padding: 20,
   },
-  button: {
-    width: 60,
-    backgroundColor: "#7D93AE",
-    height: 60,
-    borderRadius: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 30,
-    alignSelf: "center",
+  header: {
+    fontSize: 24,
+    marginBottom: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 20,
+  },
+  multilineInput: {
+    minHeight: 100,
   },
 });
+
+export default NoteInput;

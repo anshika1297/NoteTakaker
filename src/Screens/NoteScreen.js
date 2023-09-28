@@ -1,84 +1,93 @@
-import { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  StyleSheet,
-  Text,
   View,
-  SafeAreaView,
-  TextInput,
+  Text,
+  Button,
+  FlatList,
   TouchableOpacity,
-  ImageBackground,
+  StyleSheet,
+  TextInput,
   Dimensions,
-  ScrollView,
+  ImageBackground,
 } from "react-native";
-import React from "react";
-import { AntDesign, FontAwesome } from "@expo/vector-icons";
-import NoteInput from "../components/NoteInput";
-import NoteList from "../components/NoteList";
-import NoteFolder from "./NoteFolder";
+import {
+  AntDesign,
+  FontAwesome,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import RNPickerSelect from "react-native-picker-select";
+import CategorySelector from "../components/CategorySelector";
 
 const { width } = Dimensions.get("window");
-const NoteScreen = () => {
+const NoteScreen = ({ navigation }) => {
+  const [notes, setNotes] = useState([]);
   const [search, setSearch] = useState("");
-  const [modal, setModal] = useState(false);
-  const [notesData, setNotesData] = useState([]);
   const [noSearch, setnoSearch] = useState(false);
-  const [Notecategory, setCategory] = React.useState("All");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
 
-  const onSubmit = async (title, note, category) => {
-    const userData = {
-      id: Date.now(),
-      title: title,
-      noteDesc: note,
-      category: category,
-      time: new Date().toLocaleTimeString(),
-      date: new Date().toLocaleDateString(),
-      isUpdated: false,
-    };
-
-    const updatedNotes = [...notesData, userData];
-    await AsyncStorage.setItem("userNotes", JSON.stringify(updatedNotes));
-    setNotesData(updatedNotes);
+  const toggleCategoryModal = () => {
+    setCategoryModalVisible(!isCategoryModalVisible);
   };
 
-  const filterfunc = () => {
-    getNotes();
-    if (Notecategory === "All") {
-      setNotesData(notesData);
-    } else {
-      const filteredData = notesData.filter(
-        (note) => note.category === Notecategory
-      );
-      setNotesData(filteredData);
+  // Function to handle category selection
+  const handleCategoryChange = (category) => {
+    setSelectedCategory(category);
+    fetchNotes();
+  };
+
+  // Function to fetch notes from AsyncStorage
+  const fetchNotes = async () => {
+    try {
+      const savedNotes = await AsyncStorage.getItem("notes");
+      if (savedNotes) {
+        const parsedNotes = JSON.parse(savedNotes);
+        console.log(selectedCategory);
+        if (selectedCategory === "All") {
+          console.log(parsedNotes);
+          setNotes(parsedNotes);
+        } else {
+          const filteredNotes = selectedCategory
+            ? parsedNotes.filter((note) => note.category === selectedCategory)
+            : parsedNotes;
+          console.log(filteredNotes);
+          setNotes(filteredNotes);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching notes:", error);
     }
   };
+
   const handleOnSearch = (e) => {
     setnoSearch(false);
     setSearch(e);
     if (e.length === 0) {
-      getNotes();
+      fetchNotes();
     }
-    const searchNote = notesData.filter((note) => {
-      if (note.noteDesc.toLowerCase().includes(e.toLowerCase())) return note;
+    const searchNote = notes.filter((note) => {
+      if (note.content.toLowerCase().includes(e.toLowerCase())) return note;
     });
 
-    searchNote.length > 0 ? setNotesData([...searchNote]) : setnoSearch(true);
+    searchNote.length > 0 ? setNotes([...searchNote]) : setnoSearch(true);
   };
 
-  const getNotes = async () => {
+  // Fetch notes on component mount
+  useEffect(() => {
+    fetchNotes();
+  }, []);
+
+  // Function to delete a note by ID
+  const deleteNote = async (id) => {
     try {
-      const getUserNotes = (await AsyncStorage.getItem("userNotes")) || [];
-      if (getUserNotes !== null) setNotesData(JSON.parse(getUserNotes));
-      console.log(notesData);
-    } catch (e) {
-      console.log(e);
+      const updatedNotes = notes.filter((note) => note.id !== id);
+      await AsyncStorage.setItem("notes", JSON.stringify(updatedNotes));
+      setNotes(updatedNotes);
+    } catch (error) {
+      console.error("Error deleting note:", error);
     }
   };
 
-  useEffect(() => {
-    getNotes();
-  }, []);
   return (
     <ImageBackground
       source={{
@@ -86,7 +95,7 @@ const NoteScreen = () => {
       }}
       style={{ width: width, height: "100%" }}
     >
-      <SafeAreaView style={{ alignSelf: "center" }}>
+      <View style={styles.container}>
         <View style={styles.searchBox}>
           <TextInput
             placeholder="Search your Notes by Content...."
@@ -100,7 +109,7 @@ const NoteScreen = () => {
               onPress={() => {
                 setSearch("");
                 setnoSearch(false);
-                getNotes();
+                setNotes();
               }}
             >
               <AntDesign
@@ -120,106 +129,104 @@ const NoteScreen = () => {
             />
           )}
         </View>
-        <Text style={styles.GreetText}>Trust The Magic!</Text>
-        <View style={[styles.CategoryBox, { height: 50 }]}>
-          <RNPickerSelect
-            onValueChange={(value) => {
-              setCategory(value);
-              filterfunc();
-            }}
-            items={[
-              { label: "All", value: "All" },
-              { label: "Work", value: "Work" },
-              { label: "Personal", value: "Personal" },
-              { label: "Daily", value: "Daily" },
-              { label: "Others", value: "Others" },
-            ]}
-            value={Notecategory}
-            placeholder={{
-              label: "See Notes According to Category",
-              value: null,
+        {/* Category Selection Button */}
+        <TouchableOpacity
+          onPress={toggleCategoryModal}
+          style={styles.categoryButton}
+        >
+          <Text
+            style={{
+              fontSize: 17,
+              backgroundColor: "#F1EAB3",
+              width: 250,
+              height: 30,
+              marginTop: 20,
+              padding: 5,
+              alignSelf: "center",
+              textAlign: "center",
               color: "black",
             }}
-          />
-        </View>
-        {noSearch === true ? (
-          <View style={styles.emptyContainer}>
-            <Text
-              style={{
-                color: "#7D93AE",
-                fontWeight: "bold",
-                fontSize: 23,
-                padding: 15,
-              }}
+          >
+            filter By Category: {selectedCategory}{" "}
+            <MaterialCommunityIcons
+              name="arrow-down-drop-circle"
+              size={20}
+              color="black"
+            />
+          </Text>
+        </TouchableOpacity>
+
+        {/* Category Selector */}
+        <CategorySelector
+          isVisible={isCategoryModalVisible}
+          toggleModal={toggleCategoryModal}
+          selectedCategory={selectedCategory}
+          onCategoryChange={handleCategoryChange}
+          categories={[
+            "Personal",
+            "Work",
+            "General Updates",
+            "Shopping",
+            "Other",
+            "All",
+          ]}
+        />
+
+        <Text style={styles.header}> </Text>
+        <FlatList
+          data={notes}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.noteItem}
+              onPress={() => navigation.navigate("NoteDetail", { note: item })}
             >
-              OOPS! No Results Found
-            </Text>
-            <Text
-              style={{ fontWeight: "bold", color: "#7D93AE", fontSize: 17 }}
-            >
-              Try A New Search
-            </Text>
-          </View>
-        ) : (
-          <ScrollView>
-            {notesData.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text
+              <View>
+                <Text style={{ fontWeight: "bold", fontSize: 15 }}>
+                  {item.title}
+                </Text>
+                <View
                   style={{
-                    color: "#7D93AE",
-                    fontSize: 17,
-                    paddingTop: 200,
-                    padding: 15,
+                    flexDirection: "row",
+                    opacity: 0.5,
                   }}
                 >
-                  No Notes Found
-                </Text>
-                <Text
-                  style={{ fontWeight: "bold", color: "#7D93AE", fontSize: 25 }}
-                >
-                  ADD NOTES
-                </Text>
+                  <Text styles={{ opacity: 0.5, color: "#7D93AE" }}>
+                    {item.date}
+                    {", "}
+                    {item.time}
+                  </Text>
+                </View>
+                <Text>{item.content}</Text>
               </View>
-            ) : (
-              <ScrollView>
-                <NoteList notesData={notesData} setNotesData={setNotesData} />
-              </ScrollView>
-            )}
-          </ScrollView>
-        )}
-
-        <TouchableOpacity
-          style={[
-            styles.button,
-            {
-              position: "absolute",
-              alignSelf: "baseline",
-              zIndex: 1,
-              right: 15,
-              bottom: 100,
-            },
-          ]}
-        >
-          <FontAwesome
-            name="pencil"
-            size={30}
-            color="white"
-            onPress={() => setModal(true)}
-          />
-        </TouchableOpacity>
-        <NoteInput
-          visible={modal}
-          onClose={() => setModal(false)}
-          onSubmit={onSubmit}
+              <TouchableOpacity onPress={() => deleteNote(item.id)}>
+                <MaterialCommunityIcons
+                  name="delete-circle-outline"
+                  size={35}
+                  color="red"
+                />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          )}
         />
-      </SafeAreaView>
+        <Button
+          title="Create New Note"
+          onPress={() => navigation.navigate("AddEditNote", { setNotes })}
+        />
+      </View>
     </ImageBackground>
   );
 };
 
-export default NoteScreen;
-
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  header: {
+    fontSize: 24,
+    marginBottom: 20,
+  },
   searchBox: {
     flexDirection: "row",
     marginVertical: 30,
@@ -234,38 +241,17 @@ const styles = StyleSheet.create({
     height: 50,
     fontSize: 15,
   },
-  GreetText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    alignSelf: "center",
-    fontStyle: "italic",
-    color: "#D2796C",
-  },
-  emptyContainer: {
-    flex: 1,
+  noteItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "center",
-  },
-  button: {
-    width: 60,
-    backgroundColor: "#72B2C9",
-    height: 60,
-    borderRadius: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 30,
-    zIndex: 1,
-  },
-  CategoryBox: {
-    width: 320,
-    height: 60,
-    fontSize: 17,
-    marginTop: 20,
-    paddingHorizontal: 20,
-    borderRadius: 30,
-    backgroundColor: "#7D93AE",
-    color: "#7D93AE",
-    opacity: 0.5,
+    marginBottom: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    backgroundColor: "#F1EAB3",
+    borderRadius: 5,
   },
 });
+
+export default NoteScreen;
