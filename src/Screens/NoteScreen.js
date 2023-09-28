@@ -70,6 +70,7 @@ const NoteScreen = () => {
     try {
       const getUserNotes = (await AsyncStorage.getItem("userNotes")) || [];
       if (getUserNotes !== null) setNotesData(JSON.parse(getUserNotes));
+      console.log(notesData);
     } catch (e) {
       console.log(e);
     }
